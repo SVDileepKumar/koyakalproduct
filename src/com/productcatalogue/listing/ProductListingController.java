@@ -17,7 +17,5 @@ public class ProductListingController {
 	@GetMapping(value="/list", produces="application/json")
 	public List<Map<String, Object>> productListing(){
 		return ProductListing.getProductList();
-	}
-	
-	
+	}	
 }
