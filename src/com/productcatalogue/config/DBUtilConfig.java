@@ -19,7 +19,7 @@ public class DBUtilConfig {
 		DataSource dataSource = null;
 		JndiTemplate jndi = new JndiTemplate();
 		try {
-			dataSource = jndi.lookup("java:/comp/env/jndi/koyakal",
+			dataSource = jndi.lookup("java:/comp/env/jdbc/koyakal",
 					DataSource.class);
 		} catch (NamingException e) {
 			log.error("Exception occurred : ",e);
