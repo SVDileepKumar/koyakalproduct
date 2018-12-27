@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.koyakal.common.config.KoyakalCommonProperty;
+
 @RestController
 public class ProductListingController {
 	
@@ -17,6 +19,7 @@ public class ProductListingController {
 	
 	@GetMapping(value="/list", produces="application/json")
 	public List<Map<String, Object>> productListing(){
+		String key_map = KoyakalCommonProperty.getProperty("pagination");
 		return ProductListing.getProductList();
 	}	
 	/*

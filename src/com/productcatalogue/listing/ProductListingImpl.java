@@ -39,7 +39,6 @@ public class ProductListingImpl implements ProductListingDao {
 	}
 	private static final Logger log = Logger.getLogger(ProductListingImpl.class);
 
-	@Override
 	public List<Map<String, Object>> getProductListSortedBy(String columnName, int fromIndex) {
 		try {
 			Map<String, String> table= new HashMap<String, String>();
