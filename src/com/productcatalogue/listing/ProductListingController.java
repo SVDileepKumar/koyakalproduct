@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.koyakal.common.config.KoyakalCommonProperty;
 
 @RestController
 public class ProductListingController {
@@ -19,7 +18,7 @@ public class ProductListingController {
 	
 	@GetMapping(value="/list", produces="application/json")
 	public List<Map<String, Object>> productListing(){
-		String key_map = KoyakalCommonProperty.getProperty("pagination");
+		
 		return ProductListing.getProductList();
 	}	
 	/*
@@ -36,5 +35,13 @@ public class ProductListingController {
 	@GetMapping(value="/list/{sortByColumn}/{fromIndex}", produces="application/json")
 	public List<Map<String, Object>> sortProductListingByColumnName(@PathVariable("sortByColumn") String sortByColumn,@PathVariable("fromIndex") int fromIndex){
 		return ProductListing.getProductListSortedBy(sortByColumn, fromIndex);
-	}	
+	}
+	
+	/*
+	 * returns list of products with given ids
+	 */
+	@GetMapping(value="/list/products/{productIdsList}", produces="application/json")
+	public List<Map<String, Object>> getProducts(@PathVariable int[] productIdsList){
+		return ProductListing.getProducts(productIdsList);
+	}
 }
