@@ -7,7 +7,12 @@
 		<env-entry-type>java.lang.String</env-entry-type>
 		<env-entry-value>com.koyakal.common.config.DatabasePropertiesImpl</env-entry-value>
 	</env-entry>
-  
+  	<!-- AppConfig filepath -->
+	<env-entry>
+		<env-entry-name>appConfigFilePath</env-entry-name>
+		<env-entry-type>java.lang.String</env-entry-type>
+		<env-entry-value>/appConfig.json</env-entry-value>
+	</env-entry>
   <welcome-file-list>
     <welcome-file>index.html</welcome-file>
     <welcome-file>index.htm</welcome-file>

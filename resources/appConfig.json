@@ -1,0 +1,7 @@
+{
+"DEFAULT_KOYAKAL_CATALOGUE":{
+"appId":"defaultkoyakalcatalogue",
+"appKey":"NarutoUzumaki",
+"vurl":"http://localhost:8081/ProductCatalogue/validateProducts"
+}
+}
