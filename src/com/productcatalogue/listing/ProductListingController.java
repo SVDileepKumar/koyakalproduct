@@ -8,6 +8,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.koyakal.common.security.ArmourException;
+import com.koyakal.common.security.SecurityUtil;
+import com.productcatalogue.config.AppConfig;
+import com.productcatalogue.constants.KoyakalProducts;
+
+
+
 
 @RestController
 public class ProductListingController {
@@ -18,6 +25,18 @@ public class ProductListingController {
 	
 	@GetMapping(value="/list", produces="application/json")
 	public List<Map<String, Object>> productListing(){
+		String appKey =  AppConfig.getConfig(KoyakalProducts.PC_APP_NAME, KoyakalProducts.APP_KEY);
+		String appid=AppConfig.getConfig(KoyakalProducts.PC_APP_NAME, KoyakalProducts.APP_ID);
+		String productId = "Dileep";
+		String EncryptedProductId, decryptedProductId;
+		try {
+			EncryptedProductId = SecurityUtil.encrypt(productId, appKey);
+			decryptedProductId = SecurityUtil.decrypt(EncryptedProductId, appKey);
+		} catch (ArmourException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		
 		return ProductListing.getProductList();
 	}	
