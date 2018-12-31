@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.koyakal.common.config.KoyakalCommonProperty;
 import com.koyakal.common.security.ArmourException;
 import com.koyakal.common.security.SecurityUtil;
 import com.productcatalogue.config.AppConfig;
@@ -28,6 +29,8 @@ public class ProductListingController {
 		String appKey =  AppConfig.getConfig(KoyakalProducts.PC_APP_NAME, KoyakalProducts.APP_KEY);
 		String appid=AppConfig.getConfig(KoyakalProducts.PC_APP_NAME, KoyakalProducts.APP_ID);
 		String productId = "Dileep";
+		String key = KoyakalCommonProperty.getProperty("pagination");
+		String ke = KoyakalCommonProperty.getProperty("pagination");
 		String EncryptedProductId, decryptedProductId;
 		try {
 			EncryptedProductId = SecurityUtil.encrypt(productId, appKey);
