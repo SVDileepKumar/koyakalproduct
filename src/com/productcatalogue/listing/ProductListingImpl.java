@@ -11,9 +11,7 @@ import org.apache.log4j.Logger;
 //import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Service;
 
 import com.koyakal.common.config.KoyakalCommonProperty;
@@ -22,7 +20,8 @@ import com.koyakal.common.config.KoyakalCommonProperty;
 public class ProductListingImpl implements ProductListingDao {
 
 	private NamedParameterJdbcTemplate productTemplate;
-	
+	//pagination
+	private String key_map = KoyakalCommonProperty.getProperty("pagination");
 	@Autowired
 	private Environment env;
 	
@@ -44,10 +43,9 @@ public class ProductListingImpl implements ProductListingDao {
 	}
 	private static final Logger log = Logger.getLogger(ProductListingImpl.class);
 
-	public List<Map<String, Object>> getProductListSortedBy(String columnName, int fromIndex) {
+	public List<Map<String, Object>> getProductListSortedBy(Map<String,String> filterMap, int page) {
 		try {
-			//pagination
-			String key_map = KoyakalCommonProperty.getProperty("pagination");
+			
 			
 			Map<String, String> table= new HashMap<String, String>();
 			table.put("ProductCreatedTime", "products.CreatedTime");
@@ -59,14 +57,18 @@ public class ProductListingImpl implements ProductListingDao {
 			table.put("ProductViewCount", "productpurchasewishcount.ViewCount");
 			
 			String query = env.getProperty("productlist");
-			String sortQuery=query.substring(0, query.length()-1)+" order by "+table.get(columnName);
+			String sortQuery=query.substring(0, query.length()-1)+" order by ";
+			sortQuery=table.containsKey(filterMap.get("columnName"))?sortQuery+table.get(filterMap.get("columnName")):sortQuery+"products.CreatedTime";
 			Map<String, Object> param= new HashMap<String, Object>();
-			
-			if(columnName.equals("ProductCreatedTime")) {
-				sortQuery+=" desc "+" limit "+fromIndex+", "+key_map+";";
+			int noOfProductsPerPage=Integer.parseInt(key_map);
+			int fromIndex=page*noOfProductsPerPage;
+			int endIndex=fromIndex+noOfProductsPerPage;
+			if(filterMap.get("columnName").equals("ProductCreatedTime")||!table.containsKey(filterMap.get("columnName"))) {
+				sortQuery+=" desc "+" limit "+fromIndex+", "+endIndex+";";
 			}else {
-				sortQuery+=" asc "+" limit "+fromIndex+", "+key_map+";";
+				sortQuery+=" asc "+" limit "+fromIndex+", "+endIndex+";";
 			}
+			
 			return productTemplate.queryForList(sortQuery, param);
 		}catch(Exception e) {
 			log.error("Error in fetching sorted products list -->", e);
@@ -90,6 +92,23 @@ public class ProductListingImpl implements ProductListingDao {
 			log.error("Error in fetching products list of given ids -->", e);
 		}
 	return null;
+	}
+
+	public Integer getPageCount() {
+		try {
+			String query = env.getProperty("productcount");
+			
+			Map<String, Object> param= new HashMap<String, Object>();
+			 List<Map<String, Object>> queryResult=productTemplate.queryForList(query, param);
+			 int noOfProducts=Integer.parseInt(queryResult.get(0).get("COUNT(*)").toString());
+			 int noOfProductsPerPage=Integer.parseInt(key_map);
+			 int pageCount=(int)Math.ceil((double)noOfProducts/noOfProductsPerPage);
+			 
+			 return Integer.valueOf(pageCount);
+		}catch(Exception e) {
+			log.error("Error in finding count of pages -->", e);
+		}
+		return null;
 	}
 	
 }
