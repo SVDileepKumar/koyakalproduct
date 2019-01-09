@@ -1,6 +1,7 @@
 package com.productcatalogue.listing;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import com.koyakal.common.config.KoyakalCommonProperty;
+import com.koyakal.common.security.ArmourException;
+import com.koyakal.common.security.SecurityUtil;
 
 @Service("ProductListing")
 public class ProductListingImpl implements ProductListingDao {
@@ -56,18 +59,49 @@ public class ProductListingImpl implements ProductListingDao {
 			table.put("ProductPurchasedCount", "productpurchasewishcount.PurchasedCount");
 			table.put("ProductViewCount", "productpurchasewishcount.ViewCount");
 			
-			String query = env.getProperty("productlist");
-			String sortQuery=query.substring(0, query.length()-1)+" order by ";
-			sortQuery=table.containsKey(filterMap.get("columnName"))?sortQuery+table.get(filterMap.get("columnName")):sortQuery+"products.CreatedTime";
 			Map<String, Object> param= new HashMap<String, Object>();
+			String query = env.getProperty("productlist");
+			String sortQuery=query.substring(0, query.length()-1);
+			if(filterMap.containsKey("category")) {
+				//get category id from names
+				String categoryName=filterMap.get("category");
+				String[] categoryNameArr=categoryName.split(",\\s*");
+				List<String> categoryNameList=Arrays.asList(categoryNameArr);
+				String categoryIdsQuery = env.getProperty("categoryids");
+				Map<String, Object> categoryIdsQueryParam = new HashMap<String, Object>();
+				categoryIdsQueryParam.put("categoryNames",categoryNameList);
+				List<Map<String,Object>> categoryIds=productTemplate.queryForList(categoryIdsQuery, categoryIdsQueryParam);
+				
+				//add category id list as param to sortQuery
+				List<Integer> categoryIdList=new ArrayList<Integer>();
+				for(Map<String, Object> row:categoryIds) {
+					categoryIdList.add(Integer.parseInt(row.get("CategoryId").toString()));
+				}
+				sortQuery+=" WHERE productcategorysubcategorymap.CategoryId IN (:categoryIds) ";
+				param.put("categoryIds", categoryIdList);
+			}
+			
+			sortQuery+=" order by ";
+			
+			if(filterMap.containsKey("columnName")) {
+				sortQuery=table.containsKey(filterMap.get("columnName"))?sortQuery+table.get(filterMap.get("columnName")):sortQuery+table.get("ProductCreatedTime");
+				
+			}
+			else {
+				sortQuery+=table.get("ProductCreatedTime");
+				
+			}
+			
+			if(filterMap.containsKey("order")) {
+				sortQuery+=" "+filterMap.get("order");
+			}else if(!filterMap.containsKey("columnName")||filterMap.get("columnName").equals(table.get("ProductCreatedTime"))) {
+				sortQuery+=" desc";
+			}
+			
 			int noOfProductsPerPage=Integer.parseInt(key_map);
 			int fromIndex=page*noOfProductsPerPage;
 			int endIndex=fromIndex+noOfProductsPerPage;
-			if(filterMap.get("columnName").equals("ProductCreatedTime")||!table.containsKey(filterMap.get("columnName"))) {
-				sortQuery+=" desc "+" limit "+fromIndex+", "+endIndex+";";
-			}else {
-				sortQuery+=" asc "+" limit "+fromIndex+", "+endIndex+";";
-			}
+			sortQuery+=" limit "+fromIndex+", "+endIndex+";";
 			
 			return productTemplate.queryForList(sortQuery, param);
 		}catch(Exception e) {
@@ -109,6 +143,87 @@ public class ProductListingImpl implements ProductListingDao {
 			log.error("Error in finding count of pages -->", e);
 		}
 		return null;
+	}
+
+	public List<Map<String, Object>> getShortProductList() {
+		try {
+			String query = env.getProperty("shortproductlist");
+			
+			Map<String, Object> param= new HashMap<String, Object>();
+			return productTemplate.queryForList(query, param);
+		}catch(Exception e) {
+			log.error("Error in fetching short products list -->", e);
+		}
+		return null;
+		
+	}
+
+	public List<Map<String, Object>> getCategories() {
+		try {
+			String query = env.getProperty("categorieslist");
+			
+			Map<String, Object> param= new HashMap<String, Object>();
+			return productTemplate.queryForList(query, param);
+		}catch(Exception e) {
+			log.error("Error in fetching categories list -->", e);
+		}
+		return null;
+	}
+
+	public List<Map<String, Object>> getRootCategories() {
+		try {
+			String query = env.getProperty("rootcategorieslist");
+			
+			Map<String, Object> param= new HashMap<String, Object>();
+			return productTemplate.queryForList(query, param);
+		}catch(Exception e) {
+			log.error("Error in fetching root categories list -->", e);
+		}
+		return null;
+	}
+	
+	public List<Map<String, Object>> getOrphanCategories() {
+		try {
+			String query = env.getProperty("orphancategorieslist");
+			
+			Map<String, Object> param= new HashMap<String, Object>();
+			return productTemplate.queryForList(query, param);
+		}catch(Exception e) {
+			log.error("Error in fetching orphan categories list -->", e);
+		}
+		return null;
+	}
+	public Map<String, Object> getCategoryMap() {
+		List<Map<String, Object>> categoriesList=this.getCategories();
+		List<Map<String, Object>> rootCategoriesList=this.getRootCategories();
+		List<Map<String, Object>> orphanCategoriesList=this.getOrphanCategories();
+		ArrayList<Integer> rootCategoryId=new ArrayList<Integer>();
+		for(Map<String, Object> rootCategoryRow:rootCategoriesList) {
+			rootCategoryId.add((Integer)rootCategoryRow.get("CategoryId"));
+		}
+		ArrayList<Integer> orphanCategoryId=new ArrayList<Integer>();
+		for(Map<String, Object> orphanCategoryRow:orphanCategoriesList) {
+			orphanCategoryId.add((Integer)orphanCategoryRow.get("CategoryId"));
+		}
+		HashMap<String,ArrayList<Integer>> categoryMap=new HashMap<String,ArrayList<Integer>>();
+		categoryMap.put("rootcategories", rootCategoryId);
+		categoryMap.put("orphancategories", orphanCategoryId);
+		for(Map<String, Object> categoryRow:categoriesList) {
+			if(categoryMap.containsKey(((Integer)categoryRow.get("CategoryId")).toString())) {
+				categoryMap.get(((Integer)categoryRow.get("CategoryId")).toString()).add((Integer)(categoryRow.get("SubCategoryId")));
+			}else {
+				categoryMap.put(((Integer)categoryRow.get("CategoryId")).toString(),new ArrayList<Integer>());
+				categoryMap.get(((Integer)categoryRow.get("CategoryId")).toString()).add((Integer)(categoryRow.get("SubCategoryId")));
+			}
+		}
+		HashMap<String,Object> categoryDetails=new HashMap<String,Object>();
+		for(Map<String, Object> categoryRow:categoriesList) {
+			categoryDetails.put(((Integer)categoryRow.get("CategoryId")).toString(), categoryRow.get("CategoryName").toString());
+		}
+		HashMap<String,Object> categoryTree=new HashMap<String,Object>();
+		categoryTree.put("categoryMap", categoryMap);
+		categoryTree.put("categoryDetails",categoryDetails);
+		return categoryTree;
 	}
 	
 }

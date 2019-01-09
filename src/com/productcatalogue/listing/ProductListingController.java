@@ -3,8 +3,11 @@ package com.productcatalogue.listing;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.servlet.http.HttpServletRequest;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +21,7 @@ import com.koyakal.common.security.ArmourException;
 import com.koyakal.common.security.SecurityUtil;
 import com.productcatalogue.config.AppConfig;
 import com.productcatalogue.constants.KoyakalProducts;
+
 
 
 
@@ -68,10 +72,16 @@ public class ProductListingController {
 	 * sorts the products using created time
 	 */
 	@GetMapping(value="/list/{pageIndex}", produces="application/json")
-	public Map<String, Object> sortProductListing(@PathVariable("pageIndex") String pageIndex){
+	public Map<String, Object> sortProductListing(@PathVariable(value="pageIndex") Optional<String> page){
 		String appKey =  AppConfig.getConfig(KoyakalProducts.PC_APP_NAME, KoyakalProducts.APP_KEY);
 		String appId=AppConfig.getConfig(KoyakalProducts.PC_APP_NAME, KoyakalProducts.APP_ID);
 		
+		String pageIndex;
+		if(page.isPresent()) {
+			pageIndex=page.get();
+		}else {
+			pageIndex="0";
+		}
 		String encryptedProductId=""; 
 		String regex="^[0-9]*$";
 		Pattern pattern=Pattern.compile(regex);
@@ -113,11 +123,17 @@ public class ProductListingController {
 	/*
 	 * sorts the products using given column name
 	 */
-	@PostMapping(value="/list/{pageIndex}", produces="application/json",consumes="application/json")
-	public Map<String, Object> sortProductListingByColumnName(@RequestBody Map<String,String> filterMap,@PathVariable("pageIndex") String pageIndex){
+	@PostMapping(value= {"/list/{pageIndex}","/list"}, produces="application/json",consumes="application/json")
+	public Map<String, Object> sortProductListingByColumnName(@RequestBody Map<String,String> filterMap,@PathVariable("pageIndex") Optional<String> page){
 		String appKey =  AppConfig.getConfig(KoyakalProducts.PC_APP_NAME, KoyakalProducts.APP_KEY);
 		String appId=AppConfig.getConfig(KoyakalProducts.PC_APP_NAME, KoyakalProducts.APP_ID);
 		
+		String pageIndex;
+		if(page.isPresent()) {
+			pageIndex=page.get();
+		}else {
+			pageIndex="0";
+		}
 		String encryptedProductId=""; 
 		String regex="^[0-9]*$";
 		Pattern pattern=Pattern.compile(regex);
@@ -128,6 +144,7 @@ public class ProductListingController {
 		if(matcher.find()&&Integer.parseInt(pageIndex)>=0&&filterMap!=null) {
 			
 			productList=(ArrayList<Map<String, Object>>)ProductListing.getProductListSortedBy(filterMap, Integer.parseInt(pageIndex));
+			
 			for(Map<String, Object> row:productList) {
 				String productId=row.get("ProductId").toString();
 				try {
@@ -225,4 +242,68 @@ public class ProductListingController {
 		pageCountMap.put("pagecount", NoOfPages);
 		return pageCountMap;
 	}
+	
+	
+	@GetMapping(value="/shortlist",produces="application/json")
+	public Map<String,Object> getShortProductListing(HttpServletRequest request){
+		/*String ipAddress=request.getRemoteAddr();
+		
+		InetAddress ip;
+		String countryName=null;
+		try {
+			DatabaseReader locationReader=new DatabaseReader.Builder(new File("G:\\Koyakal_Workspace\\koyakalproduct\\resources\\GeoLite2-City.mmdb")).build();
+			ip = InetAddress.getByName(ipAddress);
+			CityResponse city=locationReader.city(ip);
+			countryName=city.getCountry().getName();
+		}catch (UnknownHostException e2) {
+			log.error("Error reading ip address");
+			e2.printStackTrace();
+		} catch (IOException e1) {
+			log.error("Error reading location database");
+			e1.printStackTrace();
+		} catch (GeoIp2Exception e) {
+			log.error("Error while getting location from ip address");
+			e.printStackTrace();
+		} catch(Exception e) {
+			log.error(e);
+		}*/
+		
+		String appKey =  AppConfig.getConfig(KoyakalProducts.PC_APP_NAME, KoyakalProducts.APP_KEY);
+		String appId=AppConfig.getConfig(KoyakalProducts.PC_APP_NAME, KoyakalProducts.APP_ID);
+		String encryptedProductId=""; 
+
+		ArrayList<Map<String, Object>> productList=new ArrayList<Map<String,Object>>();
+		productList=(ArrayList<Map<String, Object>>)ProductListing.getShortProductList();
+		for(Map<String, Object> row:productList) {
+			String productId=row.get("ProductId").toString();
+			try {
+				encryptedProductId = SecurityUtil.encrypt(productId, appKey);
+			} catch (ArmourException e) {
+				log.error("Error while encryption of productId");
+				
+			}
+			row.put("ProductID", encryptedProductId);
+			
+		}
+		//adding application details -- appName and encrypted appId
+		HashMap<String, Object> productMap=new HashMap<>();
+		productMap.put("products", productList);
+//		productMap.put("country",countryName);
+		productMap.put(KoyakalProducts.APP_NAME, KoyakalProducts.PC_APP_NAME);
+		String _AppId="";
+		try {
+			_AppId = SecurityUtil.encrypt(appId, appKey);
+		} catch (ArmourException e) {
+			System.out.println("Error while encryption of appId");
+		}
+		productMap.put(KoyakalProducts.APP_ID, _AppId);
+		return productMap;
+	}
+	
+	@GetMapping(value="/categories",produces="application/json")
+	public Map<String, Object> getCategories(){
+		
+		return ProductListing.getCategoryMap();
+	}
+	
 }

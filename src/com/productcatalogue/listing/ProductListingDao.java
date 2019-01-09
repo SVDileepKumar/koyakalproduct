@@ -13,4 +13,7 @@ public interface ProductListingDao {
 
 	public Integer getPageCount();
 
+	public List<Map<String, Object>> getShortProductList();
+
+	public Map<String, Object> getCategoryMap();
 }
