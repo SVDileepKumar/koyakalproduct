@@ -56,8 +56,8 @@ public class ProductListingImpl implements ProductListingDao {
 			table.put("ProductSubCategoryId", "productcategorysubcategorymap.SubCategoryId");
 			table.put("ProductDefaultPrice", "productpricing.DefaultPrice");
 			table.put("ProductDiscountPercentage", "productpricing.DiscountPercentage");
-			table.put("ProductPurchasedCount", "productpurchasewishcount.PurchasedCount");
-			table.put("ProductViewCount", "productpurchasewishcount.ViewCount");
+			table.put("ProductPopularity", "5*productpurchasewishcount.PurchasedCount+2*productpurchasewishcount.WishListCount+1*productpurchasewishcount.ViewCount");
+			
 			
 			Map<String, Object> param= new HashMap<String, Object>();
 			String query = env.getProperty("productlist");
@@ -80,7 +80,15 @@ public class ProductListingImpl implements ProductListingDao {
 				sortQuery+=" WHERE productcategorysubcategorymap.CategoryId IN (:categoryIds) ";
 				param.put("categoryIds", categoryIdList);
 			}
-			
+			//list available products or all products
+			if(filterMap.containsKey("available")) {
+				if(filterMap.get("available").equalsIgnoreCase("TRUE")) {
+					//list available products
+					sortQuery+="AND products.status=1 ";
+				}else if(filterMap.get("available").equalsIgnoreCase("FALSE")){
+					sortQuery+="AND products.status=0 ";
+				}
+			}
 			sortQuery+=" order by ";
 			
 			if(filterMap.containsKey("columnName")) {
@@ -94,7 +102,9 @@ public class ProductListingImpl implements ProductListingDao {
 			
 			if(filterMap.containsKey("order")) {
 				sortQuery+=" "+filterMap.get("order");
-			}else if(!filterMap.containsKey("columnName")||filterMap.get("columnName").equals(table.get("ProductCreatedTime"))) {
+			}else if(filterMap.get("columnName").equalsIgnoreCase("ProductDefaultPrice")) {
+				sortQuery+=" asc";
+			}else  {
 				sortQuery+=" desc";
 			}
 			
